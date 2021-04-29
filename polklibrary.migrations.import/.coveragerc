@@ -1,0 +1,6 @@
+[report]
+include =
+    src/polklibrary/*
+omit =
+    */test*
+    */upgrades/*
