@@ -7,6 +7,7 @@ from Products.Five import BrowserView
 from plone.protect.interfaces import IDisableCSRFProtection
 from zope.interface import alsoProvides
 from plone.namedfile.file import NamedBlobFile,NamedBlobImage
+from plone.app.textfield.value import RichTextValue
 import json, logging, time, requests, base64, io
 
 logger = logging.getLogger("Plone")
@@ -25,17 +26,19 @@ class Importer(BrowserView):
             response = requests.get(url)
             data = json.loads(response.text)
             
-            self.create_content(data)
+            self.create_content(self.context, data)
 
             
         return self.output
 
 
-    def create_content(self, data):
+    def create_content(self, context, data):
         with api.env.adopt_roles(roles=['Manager']):
-            item = createContentInContainer(self.context, data['portal_type'], id=data['getId'], title=data['title'])
+            item = createContentInContainer(context, data['portal_type'], id=data['getId'], title=data['title'])
             setattr(item, '_plone.uuid', data['_plone.uuid'])
             
+            
+            has_folder_contents = False
             
             for k,v in data.items():
                 key = k
@@ -55,10 +58,14 @@ class Importer(BrowserView):
                     blob_data = NamedBlobFile(self.from_base64(val), filename=data['filename'])
                     setattr(item, key, blob_data)
                     
-                elif 'subjects' in key:
+                elif ':TEXT' in key:
+                    key = key.replace(':TEXT', '')
+                    setattr(item, key, RichTextValue(val, 'text/html', 'text/html'))
+                    
+                elif key == 'subjects':
                     item.setSubject(val)
                     
-                elif 'review_state' in key:
+                elif key == 'review_state':
                     workflowTool = getToolByName(item, "portal_workflow")
                     try:
                         state = ""
@@ -74,12 +81,19 @@ class Importer(BrowserView):
                 elif any(x in key for x in ['filename','_plone.uuid','getId']): # SKIP
                     pass
                 
+                elif key == '__content':
+                    print('Mark for folder content')
+                    has_folder_contents = True
+                
                 elif hasattr(item, key):
                     setattr(item, key, val)
                     
             item.reindexObject()
             self.output += "    imported: " + str(item.title) + " | " + str(item.getId()) + " | " + str(item.UID()) + "\n"
 
+            if has_folder_contents:
+                for subdata in data['__content']:
+                    self.create_content(item, subdata)
 
 
     def from_base64(self, data):

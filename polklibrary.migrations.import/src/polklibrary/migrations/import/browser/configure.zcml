@@ -22,7 +22,7 @@
         for="*"
         name="polklibrary_import"
         class=".importer.Importer"
-        permission="zope2.View"
+        permission="cmf.ManagePortal"
         />
     
 
