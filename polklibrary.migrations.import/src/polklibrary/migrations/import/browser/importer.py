@@ -74,7 +74,7 @@ class Importer(BrowserView):
                         elif data['review_state'] == 'private':
                             state = "retract"
                         if state:
-                            workflowTool.doActionFor(item, "publish")
+                            workflowTool.doActionFor(item, state)
                     except Exception:
                         print("Could not change review_state")
                         
