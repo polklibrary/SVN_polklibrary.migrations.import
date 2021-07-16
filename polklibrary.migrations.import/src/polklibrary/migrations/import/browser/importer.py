@@ -65,6 +65,9 @@ class Importer(BrowserView):
                 elif key == 'subjects':
                     item.setSubject(val)
                     
+                elif key == 'creator':
+                    item.setCreators(val)
+                    
                 elif key == 'review_state':
                     workflowTool = getToolByName(item, "portal_workflow")
                     try:
